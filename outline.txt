@@ -1,0 +1,9 @@
+BACKEND
+- chess master: manages the board and verifies moves
+- chat manager (flask socketio)
+- db manager (saves users, chats, games)
+
+FRONTEND
+- open voice recorder (streaming on client-side, end of curr msg automatically detected)
+- chat interface (2 players text messages)
+- tts to read aloud recieved moves, stt to transcribe voice into a move
