@@ -1,32 +1,61 @@
 export default function Home() {
-    function generateGameID() {
-        var id = Math.random().toString(36).substring(2)
-        var id = id + Math.random().toString(36).substring(2, (20 - id.length) + 2);
-        document.querySelector("#create-block input").setAttribute("data-full-id", id);
-        document.querySelector("#create-block input").value = id.substring(0, 10) + "...";
+    async function generateGameID() {
+        console.log(process.env.REACT_APP_SERVER_URL);
+        var res = await fetch(process.env.REACT_APP_SERVER_URL + "/generate_game_id").then(res => res.json());
+        var gameId = res.gameId;
+        document.querySelector("#create-block input").setAttribute("data-full-id", gameId);
+        document.querySelector("#create-block input").value = gameId.substring(0, 10) + "...";
         // hide error
         document.querySelector("#create-block p.error").innerHTML = "";
-        return id;
+        return gameId;
     }
     function copyIDToClipboard() {
         navigator.clipboard.writeText(document.querySelector("#create-block input").getAttribute("data-full-id"));
     }
-    function verifyGameID(id) {
-        if (id === null || id === "" || id === undefined || id.length !== 20) return false;
-        return true;
-    }
-    function startGame() {
-        var id = document.querySelector("#create-block input").getAttribute("data-full-id");
-        if (verifyGameID(id)) window.location.href = `game/${id}`;
-        else {
-            document.querySelector("#create-block p.error").innerHTML = "Invalid Game ID! Please refresh the id";
+    async function startGame() {
+        var gameId = document.querySelector("#create-block input").getAttribute("data-full-id");
+        var res = await fetch(
+            process.env.REACT_APP_SERVER_URL,
+            {
+                method: "POST",
+                headers: {
+                "Content-Type": "application/json",
+                },
+                body: JSON.stringify({game_id: gameId, username: "username", is_creator: true}),
+            }
+        ).then(res => res.json());
+        if (res.error) {
+            document.querySelector("#create-block p.error").innerHTML = res.error;
+            return;
         }
+        window.location.href = `game/${gameId}`
     }
-    function joinGame() {
-        var id = document.querySelector("#join-block input").getAttribute("data-full-id");
-        if (verifyGameID(id)) window.location.href = `game/${id}`;
-        else {
-            document.querySelector("#join-block p.error").innerHTML = "Invalid Game ID";
+    async function joinGame() {
+        const gameId = document.querySelector("#join-block input").value.trim();
+        
+        try {
+            const res = await fetch(
+                process.env.REACT_APP_SERVER_URL,
+                {
+                    method: "POST",
+                    headers: {
+                    "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({"game_id": gameId, "username": "username2", "is_creator": false}),
+                }
+            );
+            
+            const data = await res.json();
+            
+            if (res.ok) {
+                // Successful join, navigate to game
+                window.location.href = `game/${gameId}`;
+            } else {
+                // Show error
+                document.querySelector("#join-block p.error").innerHTML = data.error;
+            }
+        } catch (error) {
+            console.error("Join game error:", error);
         }
     }
 
