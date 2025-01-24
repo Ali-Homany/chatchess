@@ -1,4 +1,5 @@
 import os
+import copy
 from dotenv import load_dotenv
 from flask_cors import CORS
 from flask import Flask, request, session, jsonify
@@ -68,6 +69,15 @@ def enter_game():
     return jsonify({"id": game_room_id})
 
 
+@app.route('/game/<game_room_id>', methods=['GET'])
+def get_game(game_room_id):
+    if game_room_id not in games:
+        return jsonify({"error": "Game does not exist"}), 400
+    game_room = copy.deepcopy(games[game_room_id])
+    if 'game' in game_room: game_room.pop('game')
+    return jsonify(game_room), 200
+
+
 @socketio.on("connect")
 def connect(auth):
     logger.debug(f'Client tried to connect')
@@ -135,6 +145,7 @@ def handle_message(message):
         return socketio.emit('error', {'message': 'It is not your turn.'})
     try:
         game.update_board(message)
+        game_room['messages'] = game_room['messages'] + [message]
         if game_outcome := game.is_game_ended():
             game_room['status'] = 'completed'
             game_outcome['winner'] = game_room['players']['white' if game_outcome['is_white_winner'] else 'black']['username']

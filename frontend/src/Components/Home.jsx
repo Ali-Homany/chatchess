@@ -28,7 +28,6 @@ export default function Home({ curr_username, setCurr_username }) {
         setNewGameRoomId(res.gameRoomId);
         return newGameRoomId;
     }
-    // TODO: add 'copied' message to user
     function copyIDToClipboard() {
         navigator.clipboard.writeText(document.querySelector("#create-block input").getAttribute("data-full-id"));
         setError("Copied to clipboard!");
