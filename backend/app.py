@@ -1,12 +1,13 @@
 import os
 import copy
+import logging
 from dotenv import load_dotenv
 from flask_cors import CORS
 from flask import Flask, request, session, jsonify
 from flask_socketio import join_room, leave_room, SocketIO
 from utils.chess_game import ChessGame
 from utils.helper import generate_random_id
-import logging
+from utils.models import Speech2TextModel, ModelException
 
 
 load_dotenv()
@@ -14,6 +15,8 @@ app = Flask(__name__)
 app.secret_key = os.getenv('SECRET_KEY')
 CORS(app, origins=[os.getenv('FRONTEND_URL')])
 socketio = SocketIO(app, cors_allowed_origins=[os.getenv('FRONTEND_URL')])
+# setup speech to text model
+speech2text_model = Speech2TextModel()
 # setup logger for debugging
 logger = logging.getLogger('Backend')
 logger.setLevel(logging.DEBUG)
@@ -155,6 +158,18 @@ def handle_message(message):
     # Broadcast the message to the game
     socketio.emit("message", message, room=game_room_id)
     logger.debug(f"Message sent to game {game_room_id}: {message}")
+
+
+@socketio.on('audio')
+def handle_audio(audio_bytes):
+    logger.debug(f'Audio recieved')
+    try:
+        move_str = speech2text_model.run(audio_bytes)
+    except ModelException as e:
+        return socketio.emit('error', {'message': "Error with speech to text model: " + str(e)})
+    if move_str is None or move_str == 'UNKNOWN':
+        return socketio.emit('error', {'message': 'Could not understand audio'})
+    return handle_message(move_str)
 
 
 if __name__ == '__main__':

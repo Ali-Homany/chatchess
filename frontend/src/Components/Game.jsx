@@ -3,6 +3,7 @@ import { io } from "socket.io-client";
 import { useParams, useNavigate } from "react-router-dom";
 import Chat from "./Chat";
 import Player from "./Player";
+import AutoRecord from "./AutoRecord";
 
 export default function Game({ curr_username }) {
     const navigate = useNavigate();
@@ -10,6 +11,7 @@ export default function Game({ curr_username }) {
     const [secondPlayer, setSecondPlayer] = useState("Unknown");
     const [isSecondPlayerConnected, setIsSecondPlayerConnected] = useState(false);
     const [isCurrPlayerWhite, setIsCurrPlayerWhite] = useState(true);
+    const [isWhiteTurn, setIsWhiteTurn] = useState(true);
     const [error, setError] = useState(null);
     useEffect(() => {
         if (error) {
@@ -19,6 +21,7 @@ export default function Game({ curr_username }) {
     }, [error]);
 
     const [socket, setSocket] = useState(null);
+    const [socketConnected, setSocketConnected] = useState(false);
     const [gameRoomId] = useState(useParams().gameRoomId);
     useEffect(() => {
         if (!gameRoomId) return;
@@ -28,13 +31,18 @@ export default function Game({ curr_username }) {
         });
         sock.on('connect', () => {
             console.log('Connected to server');
-        })
+            setSocketConnected(true);
+        });
+        sock.on('disconnect', () => {
+            console.log('Disconnected from server');
+            setSocketConnected(false);
+        });
         // Listen for messages from the server
         sock.on('message', (newMessage) => {
-                console.log('Received message:', newMessage);
-                setMessages(prevMessages => [...prevMessages, newMessage]);
-            }
-        );
+            console.log('Received message:', newMessage);
+            setMessages(prevMessages => [...prevMessages, newMessage]);
+            setIsWhiteTurn(!isWhiteTurn);
+        });
         sock.on('error', (error) => {
             console.error('Error:', error);
             // Store the error message
@@ -100,6 +108,15 @@ export default function Game({ curr_username }) {
         socket.emit('message', message);
         document.querySelector("#move-text-input").value = '';
     }
+    function sendAudioClip(audioBlob) {
+        // emit audio clip
+        console.log("Sent audio clip");
+        if (!socket) {
+            console.log("Tried to send audio clip, but Socket not connected");
+            return;
+        }
+        socket.emit('audio', audioBlob);
+    }
     function endGame(result) {
         if (result['is_draw']) {
             alert("Game Over! It is a draw.");
@@ -116,18 +133,23 @@ export default function Game({ curr_username }) {
 
 
     return (
-        <div id="game">
-            <div className="space"></div>
-            <Player id="opponent" username={secondPlayer} profile_path="../../images/profile.png" isWhite={!isCurrPlayerWhite} isConnected={isSecondPlayerConnected}/>
-            <Chat messages={messages}/>
-            <Player id="me" username={curr_username} profile_path="../../images/profile.png" isWhite={isCurrPlayerWhite} isConnected={true}/>
-            <div className="space"></div>
-            {error && <div className="error-message">{error}</div>}
-            <input id="move-text-input" type="text" placeholder="Type in your move.." maxLength={7}/>
-            <div id="controls">
-                <button id="leave-btn" onClick={() => leaveGame()}>Leave</button>
-                <button id="confirm-btn" onClick={() => sendMessage()}>Confirm Move</button>
+        <>
+        {!socketConnected && <div>Connecting...</div>} {/* Or a spinner */}
+        {socketConnected && 
+            <div id="game">
+                <div className="space"></div>
+                <Player id="opponent" username={secondPlayer} profile_path="../../images/profile.png" isWhite={!isCurrPlayerWhite} isConnected={isSecondPlayerConnected}/>
+                <Chat messages={messages}/>
+                <Player id="me" username={curr_username} profile_path="../../images/profile.png" isWhite={isCurrPlayerWhite} isConnected={true}/>
+                <AutoRecord isCurrTurn={isWhiteTurn === isCurrPlayerWhite} sendAudioClip={sendAudioClip}/>
+                {error && <div className="error-message">{error}</div>}
+                <input id="move-text-input" type="text" placeholder="Type in your move.." maxLength={7}/>
+                <div id="controls">
+                    <button id="leave-btn" onClick={() => leaveGame()}>Leave</button>
+                    <button id="confirm-btn" onClick={() => sendMessage()}>Confirm Move</button>
+                </div>
             </div>
-        </div>
+        }
+        </>
     );
 }
