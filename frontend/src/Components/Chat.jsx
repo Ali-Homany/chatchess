@@ -1,6 +1,6 @@
 import Message from "./Message";
 
-export default function Chat({ messages }) {
+export default function Chat({ messages, isCurrPlayerWhite }) {
     return (
         <div id="chat">
             {
@@ -10,6 +10,7 @@ export default function Chat({ messages }) {
                             key={index}
                             message={message}
                             isWhite={index % 2 == 0}
+                            isOpponent={isCurrPlayerWhite != (index % 2 == 0)}
                         />
                     );
                 }).reverse()

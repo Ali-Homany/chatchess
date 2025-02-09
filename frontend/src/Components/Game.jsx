@@ -139,9 +139,9 @@ export default function Game({ curr_username }) {
             <div id="game">
                 <div className="space"></div>
                 <Player id="opponent" username={secondPlayer} profile_path="../../images/profile.png" isWhite={!isCurrPlayerWhite} isConnected={isSecondPlayerConnected}/>
-                <Chat messages={messages}/>
+                <Chat messages={messages} isCurrPlayerWhite={isCurrPlayerWhite}/>
                 <Player id="me" username={curr_username} profile_path="../../images/profile.png" isWhite={isCurrPlayerWhite} isConnected={true}/>
-                <AutoRecord isCurrTurn={isWhiteTurn === isCurrPlayerWhite} sendAudioClip={sendAudioClip}/>
+                {/* <AutoRecord isCurrTurn={isWhiteTurn === isCurrPlayerWhite} sendAudioClip={sendAudioClip}/> */}
                 {error && <div className="error-message">{error}</div>}
                 <input id="move-text-input" type="text" placeholder="Type in your move.." maxLength={7}/>
                 <div id="controls">
